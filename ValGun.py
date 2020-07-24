@@ -89,8 +89,7 @@ def stackImages(scale, imgArray):
 # SHOOTING FUNCTIONS
 
 currentHealth = 100
-previousHealth = 0
-status = 1
+previousHealth = 100
 buyPhase = False
 dead = False
 shopOpen = False
@@ -98,28 +97,34 @@ shopOpen = False
 def fire():
     send(FIRE_MESSAGE)
 
-def checkHP():
-    global currentHealth, status, previousHealth
-    currentHealth, previousHealth = int(currentHealth), int(previousHealth)
-    if currentHealth < previousHealth:
-        fire()
-        print("Fire!")
-        previousHealth = currentHealth
-    if currentHealth > previousHealth:
-        difference = currentHealth - previousHealth
-        if difference <= 50:
-            print("You're being healed!!!")
+def checkHP(text):
+    global currentHealth, previousHealth, buyPhase, dead
+    print("Check HP GOT:", text)
+    try:
+        currentHealth = int(text)
+        currentHealth, previousHealth = int(currentHealth), int(previousHealth)
+        if currentHealth < previousHealth:
+            fire()
+            print("Fire!")
             previousHealth = currentHealth
-        if difference > 50:
-            sleep(.5)
-            if buyPhase == True:
-                print("New Round!!")
+        if currentHealth > previousHealth:
+            difference = currentHealth - previousHealth
+            if difference <= 50:
+                print("You're being healed!!!")
                 previousHealth = currentHealth
-            else:
-                print("Revived")
-                previousHealth = currentHealth
-    else:
-        previousHealth = currentHealth
+            if difference > 50:
+                sleep(.5)
+                if buyPhase == True:
+                    print("New Round!!")
+                    previousHealth = currentHealth
+                else:
+                    print("Revived")
+                    previousHealth = currentHealth
+        else:
+            previousHealth = currentHealth
+    except:
+        print("error")
+        pass
 
 
 
@@ -130,7 +135,7 @@ with mss.mss() as sct:
     monitor2 = {"top": 250, "left": 1025, "width": 410, "height": 100}
 
 def hpWIN():
-    global currentHealth, previousHealth, status, buyPhase, dead, shopOpen
+    global currentHealth, previousHealth, buyPhase, dead, shopOpen
     # create trackbars / trackbar window
     cv2.namedWindow("Trackbars")
     cv2.resizeWindow("Trackbars", 400, 400)
@@ -205,32 +210,38 @@ def hpWIN():
             cropped = im2[y:y + h, x:x + w]
             text = pytesseract.image_to_string(im2, config='outputbase digits')
             text = re.sub('[^0-9]', '', text)
-            if buyPhase and dead and shopOpen is False:
-                    print("Checking")
-                    if text == "":
-                        sleep(2)
+            if dead == False:
+                if buyPhase == False:
+                    try:
+                        text = int(text)
+                        checkHP(text)
+                        print(f"Viewer HP: {text}, Current Health: {currentHealth}, Dead: {dead}, Buy Phase: {buyPhase}")
                         if text == "":
-                            fire()
-                            print("You died [I think]")
-                            dead = True
-                    else:
-                        try:
-                            text = int(text)
-                            currentHealth = text
-                            checkHP()
-                            print("Current HP:", text)
-                        except:
-                            print("random error")
-            if buyPhase == True:
-                print("Buy Phase")
-            if shopOpen == True:
-                print("Shop Open")
+                            sleep(.5)
+                            if text == "":
+                                print("You're Dead [I think]")
+                                fire()
+                                dead = True
+                    except:
+                        if text == "":
+                            print("Got Blank")
+                            sleep(3)
+                            if text == "":
+                                text = 0
+                                checkHP(text)
+                                dead = True
+
+            if dead == True:
+                print("player dead")
+
+
+
 
         # press ` to close
         if cv2.waitKey(1) & 0xFF == ord("`"):
             cv2.destroyAllWindows()
             break
-    cv2.waitKey(0)
+    cv2.waitKey(2)
 
 def buyWin():
     global currentHealth, previousHealth, status, buyPhase, dead, shopOpen
@@ -305,28 +316,23 @@ def buyWin():
             buyText = pytesseract.image_to_string(cropped2)
             buyText = buyText.lower()
             if buyPhase == False:
-               if buyText == "buy phase" or buyText == "match point":
-                    sleep(.5)
-                    if buyText == "buy phase" or buyText == "match point":
-                        buyPhase = True
-                        print("Buy Phase Activated")
-                        dead = False
+               if buyText == "buy phase" or buyText == "match point" or buyText == "ound before":
+                    buyPhase = True
+                    dead = False
+                    print("Buy Phase Activated")
+                    print("Dead Status:",dead)
             if buyPhase == True:
                 if buyText == "":
-                    shopOpen = False
-                    sleep(2)
+                    sleep(3)
                     if buyText == "":
                         buyPhase = False
                         print("Buy Phase Deactivated")
-                if buyText == "rifles":
-                    shopOpen = True
-                    print("shop open")
         # press ` to close
         if cv2.waitKey(1) & 0xFF == ord("`"):
             cv2.destroyAllWindows()
             break
 
-    cv2.waitKey(0)
+    cv2.waitKey(2)
 
 if __name__ == "__main__":
     try:

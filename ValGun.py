@@ -92,36 +92,44 @@ currentHealth = 100
 previousHealth = 100
 buyPhase = False
 dead = False
-shopOpen = False
+check = False
 
-def fire():
+
+def fire(x):
+    global dead
     send(FIRE_MESSAGE)
+    try:
+        if x == "":
+            dead = True
+        if x > 0:
+            print("Player Still Alive")
+    except:
+        pass
 
 def checkHP(text):
     global currentHealth, previousHealth, buyPhase, dead
-    print("Check HP GOT:", text)
+    #print("Check HP GOT:", text)
     try:
         currentHealth = int(text)
-        currentHealth, previousHealth = int(currentHealth), int(previousHealth)
-        if currentHealth < previousHealth:
-            fire()
-            print("Fire!")
-            previousHealth = currentHealth
-        if currentHealth > previousHealth:
-            difference = currentHealth - previousHealth
-            if difference <= 50:
-                print("You're being healed!!!")
-                previousHealth = currentHealth
-            if difference > 50:
-                sleep(.5)
-                if buyPhase == True:
-                    print("New Round!!")
+        if currentHealth <=150:
+            currentHealth, previousHealth = int(currentHealth), int(previousHealth)
+            if currentHealth < 100:
+                if currentHealth < previousHealth:
+                    fire(currentHealth)
+                    print("Fire!")
                     previousHealth = currentHealth
-                else:
-                    print("Revived")
-                    previousHealth = currentHealth
+                if currentHealth > previousHealth:
+                    difference = currentHealth - previousHealth
+                    if difference < 50:
+                        print("You're being healed!!!")
+                        previousHealth = currentHealth
+                    if difference >= 50:
+                        dead = True
+                        print("You got hit hard")
+                        fire(currentHealth)
+
         else:
-            previousHealth = currentHealth
+            currentHealth = previousHealth
     except:
         print("error")
         pass
@@ -131,11 +139,14 @@ def checkHP(text):
 
 with mss.mss() as sct:
     # Part of the screen to capture
-    monitor = {"top": 1320, "left": 730, "width": 110, "height": 75}
-    monitor2 = {"top": 250, "left": 1025, "width": 410, "height": 100}
+    # monitor = {"top": 1320, "left": 730, "width": 110, "height": 75}
+    # monitor2 = {"top": 250, "left": 1025, "width": 410, "height": 100}
+
+    monitor = {"top": 1000, "left": 570, "width": 84, "height": 52}
+    monitor2 = {"top": 165, "left": 805, "width": 306, "height": 82}
 
 def hpWIN():
-    global currentHealth, previousHealth, buyPhase, dead, shopOpen
+    global currentHealth, previousHealth, buyPhase, dead, shopOpen, check
     # create trackbars / trackbar window
     cv2.namedWindow("Trackbars")
     cv2.resizeWindow("Trackbars", 400, 400)
@@ -143,7 +154,7 @@ def hpWIN():
     cv2.createTrackbar("Hue Max", "Trackbars", 179, 179, empty)
     cv2.createTrackbar("Sat Min", "Trackbars", 0, 255, empty)
     cv2.createTrackbar("Sat Max", "Trackbars", 255, 255, empty)
-    cv2.createTrackbar("Val Min", "Trackbars", 217, 255, empty)
+    cv2.createTrackbar("Val Min", "Trackbars", 231, 255, empty)
     cv2.createTrackbar("Val Max", "Trackbars", 255, 255, empty)
     while True:
         last_time = time.time()
@@ -161,13 +172,14 @@ def hpWIN():
         #print("fps: {}".format(1 / (time.time() - last_time)))
 
         # set kernel size \\ adjust this to fine tune the image
-        kernel = np.ones((5, 5), np.uint8)
+        kernel = np.ones((10, 10), np.uint8)
 
         # grab screen and alter
         # grabCanny = cv2.Canny(img, 40, 40)
         # grabDilation = cv2.dilate(grabCanny, kernel, iterations=0)
         # grabEroded = cv2.erode(grabCanny, kernel, iterations=1)
         grabHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        #gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
         # assign track bars
         h_min = cv2.getTrackbarPos("Hue Min", "Trackbars")
         h_max = cv2.getTrackbarPos("Hue Max", "Trackbars")
@@ -175,23 +187,23 @@ def hpWIN():
         s_max = cv2.getTrackbarPos("Sat Max", "Trackbars")
         v_min = cv2.getTrackbarPos("Val Min", "Trackbars")
         v_max = cv2.getTrackbarPos("Val Max", "Trackbars")
-        # print(h_min,h_max,s_min,s_max,v_min,v_max) #print to test if the above is working.
+        # # print(h_min,h_max,s_min,s_max,v_min,v_max) #print to test if the above is working.
         lower = np.array([h_min, s_min, v_min])
         upper = np.array([h_max, s_max, v_max])
         grabMask = cv2.inRange(grabHSV, lower, upper)
         grabResult = cv2.bitwise_and(img, img, mask=grabMask)
-        grabGray = cv2.cvtColor(grabResult, cv2.COLOR_BGR2GRAY)
-        gray = grabGray.copy()
+        gray = cv2.cvtColor(grabResult, cv2.COLOR_BGR2GRAY)
+        #gray = grabGray.copy()
 
         #new stuff
         ret, thresh1 = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
-        rect_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (18,18))
+        rect_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
         dilation = cv2.dilate(thresh1, rect_kernel, iterations=1)
         contours, hierarchy = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         im2 = img.copy()
 
         # Display Screen and Alterations
-        cv2.imshow("Original",im2)
+        #v2.imshow("Original",im2)
         # SHOW THE VIDEO WINDOW
         # cv2.imshow("Canny Image", grabCanny)
         # cv2.imshow("Dilated Image",grabDilation)
@@ -216,23 +228,32 @@ def hpWIN():
                         text = int(text)
                         checkHP(text)
                         print(f"Viewer HP: {text}, Current Health: {currentHealth}, Dead: {dead}, Buy Phase: {buyPhase}")
-                        if text == "":
-                            sleep(.5)
-                            if text == "":
-                                print("You're Dead [I think]")
-                                fire()
-                                dead = True
                     except:
-                        if text == "":
-                            print("Got Blank")
-                            sleep(3)
-                            if text == "":
-                                text = 0
-                                checkHP(text)
-                                dead = True
+                        if check == False:
+                            if text == "" or text < 100:
+                                print(f"Viewer HP: {text}, Current Health: {currentHealth}, Dead: {dead}, Buy Phase: {buyPhase}")
+                                sleep(.5)
+                                check = True
+                                text = pytesseract.image_to_string(im2, config='outputbase digits')
+                                print("Checking")
+                                sleep(.5)
+                                newtext = re.sub('[^0-9]', '', text)
+                                print("New Text:", newtext)
+                                if newtext == "":
+                                    fire(newtext)
+                                else:
+                                    check = False
 
             if dead == True:
                 print("player dead")
+                sleep(.5)
+                print(".")
+                sleep(.5)
+                print("..")
+                sleep(.5)
+                print("...")
+                sleep(.5)
+
 
 
 
@@ -275,14 +296,15 @@ def buyWin():
         # grabCanny2 = cv2.Canny(killedby, 40, 40)
         # grabDilation2 = cv2.dilate(grabCanny2, kernel, iterations=0)
         # grabEroded2 = cv2.erode(grabCanny2, kernel, iterations=1)
-        grabHSV2 = cv2.cvtColor(killedby, cv2.COLOR_BGR2HSV)
-        #
-        lower2 = np.array([h_min, s_min, v_min])
-        upper2 = np.array([h_max, s_max, v_max])
-        grabMask2 = cv2.inRange(grabHSV2, lower2, upper2)
-        grabResult2 = cv2.bitwise_and(killedby, killedby, mask=grabMask2)
-        grabGray2 = cv2.cvtColor(grabResult2, cv2.COLOR_BGR2GRAY)
-        gray2 = grabGray2.copy()
+        # grabHSV2 = cv2.cvtColor(killedby, cv2.COLOR_BGR2HSV)
+        gray2 = cv2.cvtColor(killedby,cv2.COLOR_BGR2GRAY)
+        # #
+        # lower2 = np.array([h_min, s_min, v_min])
+        # upper2 = np.array([h_max, s_max, v_max])
+        # grabMask2 = cv2.inRange(grabHSV2, lower2, upper2)
+        # grabResult2 = cv2.bitwise_and(killedby, killedby, mask=grabMask2)
+        # grabGray2 = cv2.cvtColor(grabResult2, cv2.COLOR_BGR2GRAY)
+        #gray2 = grabGray2.copy()
 
         # new stuff
         ret2, thresh2 = cv2.threshold(gray2, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)

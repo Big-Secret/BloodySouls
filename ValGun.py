@@ -8,11 +8,14 @@ import socket
 import threading
 import pytesseract
 import re
+import pyautogui
+from multiprocessing import Pool, Process
+
 
 pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe"
 
 HEADER = 64
-PORT = 11666
+PORT = 7773
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER = "192.168.1.87"
@@ -68,7 +71,14 @@ def empty(x):
 #     return ver
 
 
-
+cv2.namedWindow("Trackbars")
+cv2.resizeWindow("Trackbars", 400, 400)
+cv2.createTrackbar("Hue Min", "Trackbars", 0, 179, empty)
+cv2.createTrackbar("Hue Max", "Trackbars", 179, 179, empty)
+cv2.createTrackbar("Sat Min", "Trackbars", 0, 255, empty)
+cv2.createTrackbar("Sat Max", "Trackbars", 255, 255, empty)
+cv2.createTrackbar("Val Min", "Trackbars", 200, 255, empty)
+cv2.createTrackbar("Val Max", "Trackbars", 255, 255, empty)
 
 # cv2.createTrackbar("Hue Min2", "Trackbars", 0, 179, empty)
 # cv2.createTrackbar("Hue Max2", "Trackbars", 179, 179, empty)
@@ -136,7 +146,6 @@ def checkHP(text):
 
 
 
-
 with mss.mss() as sct:
     # Part of the screen to capture
     # monitor = {"top": 1320, "left": 730, "width": 110, "height": 75}
@@ -147,20 +156,15 @@ with mss.mss() as sct:
 
 def hpWIN():
     global currentHealth, previousHealth, buyPhase, dead, shopOpen, check
+
     # create trackbars / trackbar window
-    cv2.namedWindow("Trackbars")
-    cv2.resizeWindow("Trackbars", 400, 400)
-    cv2.createTrackbar("Hue Min", "Trackbars", 0, 179, empty)
-    cv2.createTrackbar("Hue Max", "Trackbars", 179, 179, empty)
-    cv2.createTrackbar("Sat Min", "Trackbars", 0, 255, empty)
-    cv2.createTrackbar("Sat Max", "Trackbars", 255, 255, empty)
-    cv2.createTrackbar("Val Min", "Trackbars", 231, 255, empty)
-    cv2.createTrackbar("Val Max", "Trackbars", 255, 255, empty)
     while True:
         last_time = time.time()
 
-        # Get raw pixels from the screen, save it to a Numpy array
+        # Capture Desktop
+        # img = pyautogui.screenshot()
         img = np.array(sct.grab(monitor))
+        #img = np.array(img)
 
         # Display the picture
         # cv2.imshow("OpenCV/Numpy normal", img)
@@ -266,10 +270,15 @@ def hpWIN():
 
 def buyWin():
     global currentHealth, previousHealth, status, buyPhase, dead, shopOpen
+
     while "Screen capturing":
         last_time = time.time()
 
         # Get raw pixels from the screen, save it to a Numpy array
+
+        # killedby = pyautogui.screenshot()
+        # killedby = np.array(killedby)
+
         killedby = np.array(sct.grab(monitor2))
 
         # Display the picture
@@ -309,7 +318,7 @@ def buyWin():
         # new stuff
         ret2, thresh2 = cv2.threshold(gray2, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
         rect_kernel2 = cv2.getStructuringElement(cv2.MORPH_RECT, (18, 18))
-        dilation2 = cv2.dilate(thresh2, rect_kernel2, iterations=1)
+        dilation2 = cv2.dilate(thresh2, rect_kernel2, iterations=2)
         contours, hierarchy = cv2.findContours(dilation2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         im3 = killedby.copy()
 
@@ -354,13 +363,16 @@ def buyWin():
             cv2.destroyAllWindows()
             break
 
-    cv2.waitKey(2)
-
 if __name__ == "__main__":
-    try:
-        x = threading.Thread(target=hpWIN)
-        y = threading.Thread(target=buyWin)
+    # sleep(3)
+    # try:
+        x = Process(target=hpWIN)
+        y = Process(target=buyWin)
+
+        # x = threading.Thread(target=hpWIN)
+        # y = threading.Thread(target=buyWin)
+
         y.start()
         x.start()
-    except:
-        print("thread start failure")
+    # except:
+    #     print("thread start failure")

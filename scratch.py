@@ -4,11 +4,17 @@ import mss
 import numpy as np
 from time import sleep
 from tkinter import *
+import socket
+import threading
+import pytesseract
+import re
+import pyautogui
+from PIL import ImageFilter
+import multiprocessing
+from datetime import datetime
+pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe"
 
 
-
-def empty(x):
-    pass
 
 def stackImages(scale, imgArray):
     rows = len(imgArray)
@@ -41,114 +47,58 @@ def stackImages(scale, imgArray):
         hor = np.hstack(imgArray)
         ver = hor
     return ver
+def empty(x):
+    pass
+cv2.namedWindow("Control")
+cv2.resizeWindow("Control",400,260)
+cv2.createTrackbar("Hue Min","Control",0,179, empty) #function is empty because it needs to run a function. We'll pull the values from these bars via another function.
+cv2.createTrackbar("Hue Max","Control",179,179, empty)
+cv2.createTrackbar("Sat Min", "Control", 0, 255, empty)
+cv2.createTrackbar("Sat Max", "Control", 36, 255, empty)
+cv2.createTrackbar("Val Min", "Control", 232, 255, empty)
+cv2.createTrackbar("Val Max", "Control", 255, 255, empty)
+while True:
+    mainGrab = pyautogui.screenshot()
+    mainGrab = np.array(mainGrab)
+    mainGrab = np.uint8(mainGrab)
+    mainGrab = mainGrab[170:240, 805:1115]
+    mainGrab = stackImages(1, [mainGrab])
+    #imgHSV = cv2.cvtColor(mainGrab, cv2.COLOR_BGR2HSV)
 
-leftHealthBar = 0
-
-def getContours(img):
-    contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        #print(area)
-        # set the size
-        # if area < 100:objectType="none"
-        if area >= 100 and area <= 5000:
-            cv2.drawContours(imgContour, cnt, -1, (255, 0, 0), 3)
-            peri = cv2.arcLength(cnt, True)
-            #print(peri)
-            #approx = cv2.approxPolyDP(cnt, .2 * peri, False)
-            approx = cv2.convexHull(cnt,False,False,True)
-            #print("points:",len(approx))
-            objCor = len(approx)
-            x, y, w, h = cv2.boundingRect(approx)
-            if objCor != int: objectType = "XX"
-            if objCor <= 3:objectType = "0"
-            if objCor > 3:objectType = "Health Bar"
-            cv2.rectangle(imgContour, (x-5, y-5), (x + w+5, y + h+5), (255, 0, 0), 2)
-            leftHP = round(peri/10.5)
-            boxtext = str(objectType) + ": " + str(leftHP) +"%"
-            cv2.putText(imgContour,boxtext,
-                        (x+10, y+10), cv2.FONT_HERSHEY_PLAIN, 1, (100, 0, 100), 2)
-
-            global leftHealthBar
-            print("Left",boxtext)
-            leftHealthBar = leftHP
-            return leftHealthBar
-            sleep(0.1)
-        else:
-            pass
-
-
-
-
-# create trackbars / trackbar window
-cv2.namedWindow("Trackbars")
-cv2.resizeWindow("Trackbars", 400, 400)
-cv2.createTrackbar("Hue Min", "Trackbars", 0, 179, empty)
-cv2.createTrackbar("Hue Max", "Trackbars", 70, 179, empty)
-cv2.createTrackbar("Sat Min", "Trackbars", 61, 255, empty)
-cv2.createTrackbar("Sat Max", "Trackbars", 255, 255, empty)
-cv2.createTrackbar("Val Min", "Trackbars", 219, 255, empty)
-cv2.createTrackbar("Val Max", "Trackbars", 255, 255, empty)
-
-with mss.mss() as sct:
-    # Part of the screen to capture
-    monitor = {"top": 310, "left": 250, "width":600, "height": 40}
-
-    while "Screen capturing":
-        last_time = time.time()
-
-        # Get raw pixels from the screen, save it to a Numpy array
-        img = np.array(sct.grab(monitor))
-
-        # Display the picture
-        # cv2.imshow("OpenCV/Numpy normal", img)
-
-        # Display the picture in grayscale
-        # cv2.imshow('OpenCV/Numpy grayscale',
-        #            cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY))
-
-        #print("fps: {}".format(1 / (time.time() - last_time)))
-
-        # set kernel size \\ adjust this to fine tune the image
-        kernel = np.ones((5, 5), np.uint8)
-
-        # grab screen and alter
-        grabCanny = cv2.Canny(img, 40, 40)
-        grabDilation = cv2.dilate(grabCanny, kernel, iterations=0)
-        grabEroded = cv2.erode(grabCanny, kernel, iterations=1)
-        grabHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        # assign track bars
-        h_min = cv2.getTrackbarPos("Hue Min", "Trackbars")
-        h_max = cv2.getTrackbarPos("Hue Max", "Trackbars")
-        s_min = cv2.getTrackbarPos("Sat Min", "Trackbars")
-        s_max = cv2.getTrackbarPos("Sat Max", "Trackbars")
-        v_min = cv2.getTrackbarPos("Val Min", "Trackbars")
-        v_max = cv2.getTrackbarPos("Val Max", "Trackbars")
-        # print(h_min,h_max,s_min,s_max,v_min,v_max) #print to test if the above is working.
-        lower = np.array([h_min, s_min, v_min])
-        upper = np.array([h_max, s_max, v_max])
-        grabMask = cv2.inRange(grabHSV, lower, upper)
-        grabResult = cv2.bitwise_and(img, img, mask=grabMask)
-        grabGray = cv2.cvtColor(grabResult, cv2.COLOR_BGR2GRAY)
-        imgContour = grabGray.copy()
-        getContours(imgContour)
+    imgHSV = cv2.cvtColor(mainGrab, cv2.COLOR_BGR2HSV)
+    h_min = cv2.getTrackbarPos("Hue Min", "Control")
+    h_max = cv2.getTrackbarPos("Hue Max", "Control")
+    s_min = cv2.getTrackbarPos("Sat Min", "Control")
+    s_max = cv2.getTrackbarPos("Sat Max", "Control")
+    v_min = cv2.getTrackbarPos("Val Min", "Control")
+    v_max = cv2.getTrackbarPos("Val Max", "Control")
+    # Create Mask using the trackbar values.
+    lower = np.array([h_min, s_min, v_min])
+    upper = np.array([h_max, s_max, v_max])
+    mask = cv2.inRange(imgHSV, lower, upper)
+    finalImg = cv2.bitwise_and(mainGrab, mainGrab, mask=mask)
+    # Adjust Colors // Process Image
+    # Conver to Gray
+    imgGray = cv2.cvtColor(mainGrab, cv2.COLOR_BGR2GRAY)
+    # Blur it
+    imgBlur = cv2.GaussianBlur(imgGray, (3, 3), 0)
+    # Find Detect Color
+    # Convert to Canny. Black / White lines only.
+    imgCanny = cv2.Canny(mainGrab, 150, 200)
+    # Create the Kernel - Dilate and Erode will use this to adjust their sizes.
+    ksize = 1
+    kernel = np.ones((ksize, ksize), np.uint8)
+    # Dilation means thicker lines.
+    imgDilation = cv2.dilate(imgCanny, kernel, iterations=1)
+    # Erosion means thinner lines.
+    imgEroded = cv2.erode(imgCanny, kernel, iterations=1)
+    incomingBuyPhaseText = pytesseract.image_to_string(finalImg)
+    finalStack = stackImages(1, ([imgHSV, finalImg], [mask, imgEroded]))
+    cv2.imshow("Scratch Stack", finalStack)
+    print(incomingBuyPhaseText)
+    incomingBuyPhaseText = len(incomingBuyPhaseText)
 
 
-
-        # Display Screen and Alterations
-        # cv2.imshow("Original",img)
-        # SHOW THE VIDEO WINDOW
-        # cv2.imshow("Canny Image", grabCanny)
-        # cv2.imshow("Dilated Image",grabDilation)
-        # cv2.imshow("Eroded Image", grabEroded)
-        # cv2.imshow("HSV",grabHSV)
-        # cv2.imshow("Mask",grabMask)
-        cv2.imshow("Final", grabResult)
-        cv2.imshow("CPU Eyes", imgContour)
-
-
-        # press ` to close
-        if cv2.waitKey(60) & 0xFF == ord("`"):
-            cv2.destroyAllWindows()
-            break
-cv2.waitKey(0)
+    if cv2.waitKey(1) & 0xFF == ord("`"):
+                cv2.destroyAllWindows()
+                break

@@ -16,15 +16,19 @@ from datetime import datetime
 pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe"
 
 HEADER = 64
-PORT = 7773
+print("Enter matching port")
+PORT = int(input())
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER = "192.168.1.87"
 ADDR = (SERVER, PORT)
 FIRE_MESSAGE = "Hit"
-
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(ADDR)
+try:
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(ADDR)
+except:
+    print("Port Failed. Try a new port.")
+    PORT = int(input())
 
 def send(msg):
     message = msg.encode(FORMAT)
@@ -305,6 +309,18 @@ class hpWatcher:
 
 
 if __name__ == "__main__":
+    print("Starting in 5.")
+    sleep(1)
+    print("Starting in 4.")
+    sleep(1)
+    print("Starting in 3.")
+    sleep(1)
+    print("Starting in 2.")
+    sleep(1)
+    print("Starting in 1.")
+    sleep(1)
+
+
     mp.set_start_method('spawn')
     process1 = Process(target=hpWatcher)
     #process2 = Process(target=hpWatcher)

@@ -1,16 +1,10 @@
-import time
 import cv2
-import mss
 import numpy as np
 from time import sleep
-from tkinter import *
 import socket
-import threading
 import pytesseract
 import re
 import pyautogui
-from PIL import ImageFilter
-import multiprocessing
 from datetime import datetime
 
 pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe"
@@ -37,7 +31,7 @@ def send(msg):
     send_length += b' ' * (HEADER - len(send_length))
     client.send(send_length)
     client.send(message)
-    #print(client.recv(2048).decode(FORMAT))
+    # print(client.recv(2048).decode(FORMAT))
 
 # Beginning States
 previousHP = 100
@@ -127,7 +121,6 @@ def processBuyPhase():
     mainGrab = mainGrab[170:240, 805:1115]
     mainGrab = stackImages(1, [mainGrab])
     # imgHSV = cv2.cvtColor(mainGrab, cv2.COLOR_BGR2HSV)
-
     imgHSV = cv2.cvtColor(mainGrab, cv2.COLOR_BGR2HSV)
     h_min = cv2.getTrackbarPos("Hue Min", "Control")
     h_max = cv2.getTrackbarPos("Hue Max", "Control")
@@ -179,7 +172,7 @@ def status(x,y):
     global alive, buyPhase
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
-    print(f"[{current_time}] Raw Text: {y} // HP: {x} // Previous HP: {previousHP} // Alive: {alive} // Buy Phase: {buyPhase} ")
+    print(f"[{current_time}] Raw Text: {y} // HP: {x} // Alive: {alive} // Buy Phase: {buyPhase} ")
 
 def processHealth(screen):
     global incomingDeathText, alive, buyPhase, previousHP, currentHP,  lastHP
@@ -222,8 +215,7 @@ def processHealth(screen):
                         alive = 0
                     if incomingDeathText <= 4:
                         print(
-                            f"[{current_time}] Raw Text: {incomingText} // HP: Health Blocked // Previous HP: {previousHP} // Alive: {alive} // Buy Phase: {buyPhase}")
-
+                            f"[{current_time}] Raw Text: {incomingText} // HP: Health Blocked // Alive: {alive} // Buy Phase: {buyPhase}")
 
 
 
@@ -242,22 +234,14 @@ class hpWatcher:
     cv2.createTrackbar("Val Max", "Control", 255, 255, empty)
 
 
-
-
-
-
     while (True):
         previousHP = currentHP
         # Grab Window
         mainGrab = pyautogui.screenshot()
-
         # Conver to Numpy Array
         mainGrab = np.array(mainGrab)
         mainGrab = np.uint8(mainGrab)
-
         mainGrab = mainGrab[1000:1050,572:650]
-
-
         # HSV of Image
         imgHSV = cv2.cvtColor(mainGrab, cv2.COLOR_BGR2HSV)
         h_min = cv2.getTrackbarPos("Hue Min", "Control")
@@ -266,24 +250,18 @@ class hpWatcher:
         s_max = cv2.getTrackbarPos("Sat Max", "Control")
         v_min = cv2.getTrackbarPos("Val Min", "Control")
         v_max = cv2.getTrackbarPos("Val Max", "Control")
-
         # Create Mask using the trackbar values.
         lower = np.array([h_min,s_min,v_min])
         upper = np.array([h_max,s_max,v_max])
         mask = cv2.inRange(imgHSV, lower, upper)
-
         # Adjust Colors // Process Image
         # Conver to Gray
         imgGray = cv2.cvtColor(mainGrab, cv2.COLOR_BGR2GRAY)
-
         # Blur it
         imgBlur = cv2.GaussianBlur(imgGray, (3, 3), 0)
-
         # Find Detect Color
-
         # Convert to Canny. Black / White lines only.
         imgCanny = cv2.Canny(mainGrab, 150, 200)
-
         # Create the Kernel - Dilate and Erode will use this to adjust their sizes.
         ksize = 1
         kernel = np.ones((ksize, ksize), np.uint8)
@@ -291,17 +269,13 @@ class hpWatcher:
         imgDilation = cv2.dilate(imgCanny, kernel, iterations=1)
         # Erosion means thinner lines.
         imgEroded = cv2.erode(imgCanny, kernel, iterations=1)
-
         processHealth(imgEroded)
-
         # Show Windows
         #cv2.imshow("1", imgHSV)
         #cv2.imshow("2", mask)
-
         # stack the windows
         finalStack = stackImages(2,([imgHSV],[mask],[imgEroded]))
         cv2.imshow("Final Stack",finalStack)
-
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     print("Done")

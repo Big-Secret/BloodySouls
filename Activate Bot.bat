@@ -1,4 +1,4 @@
 @ECHO OFF
-python valgun.py
+python valgunrework.py
 pause
 @ECHO ON

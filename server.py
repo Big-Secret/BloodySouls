@@ -5,7 +5,7 @@ import RPi.GPIO as PIO
 
 HEADER = 64
 PORT = 6660
-SERVER = socket.gethostbyname(socket.gethostname())
+SERVER = socket.gethostbyname(socket.gethostname())2
 ADDR = (SERVER, PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"

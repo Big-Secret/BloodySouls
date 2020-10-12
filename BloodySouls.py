@@ -17,7 +17,7 @@ from time import sleep
 pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe"
 
 HEADER = 64
-PORT = 9876
+PORT =6666
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER = "192.168.1.87"

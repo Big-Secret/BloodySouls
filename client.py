@@ -5,7 +5,7 @@ from time import sleep
 
 
 HEADER = 64
-PORT = 7777
+PORT = 6666
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER = "192.168.1.87"
@@ -24,8 +24,8 @@ def send(msg):
     client.send(message)
     print(client.recv(2048).decode(FORMAT))
 
-sleep(1)
-send(FIRE_MESSAGE)
-sleep(1)
-send(DISCONNECT_MESSAGE)
+
+for x in range(1):
+    sleep(3)
+    send(FIRE_MESSAGE)
 #home/pi/server/server.py
